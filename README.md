@@ -20,11 +20,12 @@ TypeScript Provider for Usager.io
 - Symbol
 - WeakMap
 - WeakSet
-- Currylize
 - Animater
-- Operater
+- Currylize
 - Formater
 - Nullable
+- Operater
+- Signaler
 - Uniquer
 
 <br/>

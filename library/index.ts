@@ -18,6 +18,7 @@ import _Currylize from './~Currylize'
 import _Animater from './~Animater'
 import _Operater from './~Operater'
 import _Formater from './~Formater'
+import _Signaler from './~Signaler'
 import _Uniquer from './~Uniquer'
 
 export * from './-Set'
@@ -40,6 +41,7 @@ export * from './~Currylize'
 export * from './~Animater'
 export * from './~Operater'
 export * from './~Formater'
+export * from './~Signaler'
 export * from './~Uniquer'
 
 export default {
@@ -63,5 +65,6 @@ export default {
   ..._Animater,
   ..._Operater,
   ..._Formater,
+  ..._Signaler,
   ..._Uniquer,
 }

@@ -908,6 +908,463 @@ var Formater_default = {
   hyphenCase
 };
 
+// library/~Signaler.ts
+var RUNNING = 1 << 0;
+var NOTIFIED = 1 << 1;
+var OUTDATED = 1 << 2;
+var DISPOSED = 1 << 3;
+var ERRORING = 1 << 4;
+var TRACKING = 1 << 5;
+var THRESHOLD = 1 << 7;
+var batchDepth = 0;
+var batchIterate = 0;
+var globalVersion = 0;
+var globalEffect = void 0;
+var evalContext = void 0;
+var Util = class _Util {
+  static isNeedRecompute(target) {
+    for (let node = target.source; node !== void 0; node = node.nextSource) {
+      if (node.signal.version !== node.version || !node.signal.refresh() || node.signal.version !== node.version) {
+        return true;
+      }
+    }
+    return false;
+  }
+  static prepareSources(target) {
+    for (let node = target.source; node !== void 0; node = node.nextSource) {
+      if (node.signal.node !== void 0) {
+        node.rollbackNode = node.signal.node;
+      }
+      node.version = -1;
+      node.signal.node = node;
+      if (node.nextSource === void 0) {
+        target.source = node;
+        break;
+      }
+    }
+  }
+  static cleanSources(target) {
+    let node = target.source;
+    let head = void 0;
+    while (node !== void 0) {
+      const prev = node.prevSource;
+      if (node.version === -1) {
+        node.signal.delNode(node);
+        if (prev !== void 0) {
+          prev.nextSource = node.nextSource;
+        }
+        if (node.nextSource !== void 0) {
+          node.nextSource.prevSource = prev;
+        }
+      } else {
+        head = node;
+      }
+      node.signal.node = node.rollbackNode;
+      if (node.rollbackNode !== void 0) {
+        node.rollbackNode = void 0;
+      }
+      node = prev;
+    }
+    target.source = head;
+  }
+  static startBatch() {
+    batchDepth++;
+  }
+  static endBatch() {
+    if (batchDepth > 1) {
+      batchDepth--;
+      return;
+    }
+    let error;
+    let hasError = false;
+    while (globalEffect !== void 0) {
+      let effect2 = globalEffect;
+      globalEffect = void 0;
+      batchIterate++;
+      while (effect2 !== void 0) {
+        const next = effect2.nextEffect;
+        effect2.nextEffect = void 0;
+        effect2.flags &= ~NOTIFIED;
+        if (!(effect2.flags & DISPOSED) && _Util.isNeedRecompute(effect2)) {
+          try {
+            effect2.callback();
+          } catch (err) {
+            if (!hasError) {
+              hasError = true;
+              error = err;
+            }
+          }
+        }
+        effect2 = next;
+      }
+    }
+    batchIterate = 0;
+    batchDepth--;
+    if (hasError) {
+      throw error;
+    }
+  }
+};
+var Effect = class {
+  fn;
+  nextEffect;
+  cleanup = void 0;
+  source = void 0;
+  flags = TRACKING;
+  constructor(fn) {
+    this.fn = fn;
+  }
+  callback() {
+    const finish = this.start();
+    try {
+      if (this.flags & DISPOSED) return;
+      if (this.fn === void 0) return;
+      const cleanup = this.fn();
+      if (typeof cleanup === "function") {
+        this.cleanup = cleanup;
+      }
+    } finally {
+      finish();
+    }
+  }
+  dispose() {
+    this.flags |= DISPOSED;
+    if (!(this.flags & RUNNING)) {
+      for (let node = this.source; node !== void 0; node = node.nextSource) {
+        node.signal.delNode(node);
+      }
+      this.source = void 0;
+      this.fn = void 0;
+      this.clean();
+    }
+  }
+  notify() {
+    if (!(this.flags & NOTIFIED)) {
+      this.nextEffect = globalEffect;
+      this.flags |= NOTIFIED;
+      globalEffect = this;
+    }
+  }
+  clean() {
+    const cleanup = this.cleanup;
+    this.cleanup = void 0;
+    if (typeof cleanup === "function") {
+      Util.startBatch();
+      const ctx = evalContext;
+      evalContext = void 0;
+      try {
+        cleanup();
+      } catch (err) {
+        this.flags &= ~RUNNING;
+        this.flags |= DISPOSED;
+        this.dispose();
+        throw err;
+      } finally {
+        evalContext = ctx;
+        Util.endBatch();
+      }
+    }
+  }
+  start() {
+    if (this.flags & RUNNING) {
+      throw new Error("Cycle detected");
+    }
+    this.flags |= RUNNING;
+    this.flags &= ~DISPOSED;
+    this.clean();
+    Util.prepareSources(this);
+    Util.startBatch();
+    const ctx = evalContext;
+    const end = (ctx2) => {
+      if (evalContext !== this) {
+        throw new Error("Out-of-order effect");
+      }
+      Util.cleanSources(this);
+      evalContext = ctx2;
+      this.flags &= ~RUNNING;
+      if (this.flags & DISPOSED) {
+        this.dispose();
+      }
+      Util.endBatch();
+    };
+    const finish = end.bind(this, ctx);
+    evalContext = this;
+    return finish;
+  }
+};
+var Signal = class {
+  val;
+  err;
+  node = void 0;
+  target = void 0;
+  version = 0;
+  get value() {
+    const node = this.dependency();
+    if (node !== void 0) {
+      node.version = this.version;
+    }
+    return this.val;
+  }
+  set value(val) {
+    if (val === this.val) {
+      return;
+    }
+    if (batchIterate > THRESHOLD) {
+      throw new Error("Cycle detected");
+    }
+    globalVersion++;
+    this.version++;
+    this.val = val;
+    try {
+      Util.startBatch();
+      for (let node = this.target; node !== void 0; node = node.nextTarget) {
+        node.target.notify();
+      }
+    } finally {
+      Util.endBatch();
+    }
+  }
+  constructor(val) {
+    this.val = val;
+  }
+  addNode(node) {
+    if (this.target !== node && node.prevTarget === void 0) {
+      node.nextTarget = this.target;
+      if (this.target !== void 0) {
+        this.target.prevTarget = node;
+      }
+      this.target = node;
+    }
+  }
+  delNode(node) {
+    if (this.target !== void 0) {
+      const prev = node.prevTarget;
+      const next = node.nextTarget;
+      if (prev !== void 0) {
+        prev.nextTarget = next;
+        node.prevTarget = void 0;
+      }
+      if (next !== void 0) {
+        next.prevTarget = prev;
+        node.nextTarget = void 0;
+      }
+      if (node === this.target) {
+        this.target = next;
+      }
+    }
+  }
+  subscribe(fn) {
+    return effect(() => {
+      const value = this.value;
+      const ctx = evalContext;
+      evalContext = void 0;
+      try {
+        fn(value);
+      } finally {
+        evalContext = ctx;
+      }
+    });
+  }
+  dependency() {
+    if (evalContext === void 0) {
+      return void 0;
+    }
+    let node = this.node;
+    if (node === void 0 || node.target !== evalContext) {
+      node = {
+        version: 0,
+        signal: this,
+        target: evalContext,
+        prevSource: evalContext.source,
+        nextSource: void 0,
+        prevTarget: void 0,
+        nextTarget: void 0,
+        rollbackNode: node
+      };
+      if (evalContext.source !== void 0) {
+        evalContext.source.nextSource = node;
+      }
+      evalContext.source = node;
+      this.node = node;
+      if (evalContext.flags & TRACKING) {
+        this.addNode(node);
+      }
+      return node;
+    }
+    if (node.version === -1) {
+      node.version = 0;
+      if (node.nextSource !== void 0) {
+        node.nextSource.prevSource = node.prevSource;
+        if (node.prevSource !== void 0) {
+          node.prevSource.nextSource = node.nextSource;
+        }
+        node.prevSource = evalContext.source;
+        node.nextSource = void 0;
+        evalContext.source.nextSource = node;
+        evalContext.source = node;
+      }
+      return node;
+    }
+    return void 0;
+  }
+  refresh() {
+    return true;
+  }
+  toString() {
+    return this.value + "";
+  }
+  valueOf() {
+    return this.value;
+  }
+  toJSON() {
+    return this.value;
+  }
+  peek() {
+    const ctx = evalContext;
+    evalContext = void 0;
+    try {
+      return this.value;
+    } finally {
+      evalContext = ctx;
+    }
+  }
+};
+var Computed = class extends Signal {
+  globalVersion = globalVersion - 1;
+  source = void 0;
+  flags = OUTDATED;
+  fn;
+  get value() {
+    if (this.flags & RUNNING) {
+      throw new Error("Cycle detected");
+    }
+    const node = this.dependency();
+    this.refresh();
+    if (node !== void 0) {
+      node.version = this.version;
+    }
+    if (this.flags & ERRORING) {
+      throw this.err;
+    }
+    return this.val;
+  }
+  constructor(fn) {
+    super(void 0);
+    this.fn = fn;
+  }
+  addNode(node) {
+    if (this.target === void 0) {
+      this.flags |= OUTDATED | TRACKING;
+      for (let node2 = this.source; node2 !== void 0; node2 = node2.nextSource) {
+        node2.signal.addNode(node2);
+      }
+    }
+    super.addNode(node);
+  }
+  delNode(node) {
+    if (this.target !== void 0) {
+      super.delNode(node);
+      if (this.target === void 0) {
+        this.flags &= ~TRACKING;
+        for (let node2 = this.source; node2 !== void 0; node2 = node2.nextSource) {
+          node2.signal.delNode(node2);
+        }
+      }
+    }
+  }
+  refresh() {
+    this.flags &= ~NOTIFIED;
+    if (this.flags & RUNNING) {
+      return false;
+    }
+    if ((this.flags & (OUTDATED | TRACKING)) === TRACKING) {
+      return true;
+    }
+    this.flags &= ~OUTDATED;
+    if (this.globalVersion === globalVersion) {
+      return true;
+    }
+    this.globalVersion = globalVersion;
+    this.flags |= RUNNING;
+    if (this.version > 0 && !Util.isNeedRecompute(this)) {
+      this.flags &= ~RUNNING;
+      return true;
+    }
+    const selfContext = this;
+    const prevContext = evalContext;
+    try {
+      Util.prepareSources(this);
+      evalContext = selfContext;
+      const value = this.fn();
+      if (this.flags & ERRORING || this.val !== value || this.version === 0) {
+        this.version = this.version + 1;
+        this.flags &= ~ERRORING;
+        this.err = void 0;
+        this.val = value;
+      }
+    } catch (err) {
+      this.version = this.version + 1;
+      this.flags |= ERRORING;
+      this.err = err;
+    }
+    evalContext = prevContext;
+    Util.cleanSources(this);
+    this.flags &= ~RUNNING;
+    return true;
+  }
+  notify() {
+    if (!(this.flags & NOTIFIED)) {
+      this.flags |= OUTDATED | NOTIFIED;
+      for (let node = this.target; node !== void 0; node = node.nextTarget) {
+        node.target.notify();
+      }
+    }
+  }
+};
+var untracked = (fn) => {
+  const ctx = evalContext;
+  evalContext = void 0;
+  try {
+    return fn();
+  } finally {
+    evalContext = ctx;
+  }
+};
+var computed = (fn) => {
+  return new Computed(fn);
+};
+var effect = (fn) => {
+  const effect2 = new Effect(fn);
+  try {
+    effect2.callback();
+  } catch (err) {
+    effect2.dispose();
+    throw err;
+  }
+  return effect2.dispose.bind(effect2);
+};
+var signal = (val) => {
+  return new Signal(val);
+};
+var batch = (fn) => {
+  if (batchDepth > 0) {
+    return fn();
+  }
+  Util.startBatch();
+  try {
+    return fn();
+  } finally {
+    Util.endBatch();
+  }
+};
+var Signaler_default = {
+  untracked,
+  computed,
+  effect,
+  signal,
+  batch
+};
+
 // library/~Uniquer.ts
 var Cacher = /* @__PURE__ */ new Set([""]);
 var unique = (options = {}) => {
@@ -1012,15 +1469,19 @@ var library_default = {
   ...Animater_default,
   ...Operater_default,
   ...Formater_default,
+  ...Signaler_default,
   ...Uniquer_default
 };
 export {
+  batch,
   camelCase,
   clone,
+  computed,
   curry,
   dateFormat,
   debounce,
   library_default as default,
+  effect,
   equal,
   hyphenCase,
   isArray,
@@ -1072,6 +1533,7 @@ export {
   isWeakSet,
   lowerCase,
   merge,
+  signal,
   throttle,
   toFinite,
   toFixed,
@@ -1085,5 +1547,6 @@ export {
   toSymbolFor,
   underCase,
   unique,
+  untracked,
   upperCase
 };

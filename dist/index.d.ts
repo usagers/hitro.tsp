@@ -98,6 +98,81 @@ declare const equal: (one: unknown, two: unknown, opts?: EqualOptionsType | Deep
 declare const clone: <T = unknown>(val: T, opts?: CloneOptionsType | DeepType) => T;
 declare const merge: <T = unknown>(val: T, ...rest: any[]) => T;
 
+interface ReadonlySignal<T = any> {
+    readonly value: T;
+    subscribe(fn: (value: T) => void): () => void;
+    toString(): string;
+    valueOf(): T;
+    toJSON(): T;
+    peek(): T;
+}
+interface NewSignal<T = any> {
+    <P = T>(value: P): Signal<P>;
+    <P = undefined>(): Signal<P | undefined>;
+}
+interface EffectFn {
+    (): void | (() => void);
+}
+interface Node {
+    signal: Signal;
+    target: Computed | Effect;
+    rollbackNode?: Node;
+    prevSource?: Node;
+    nextSource?: Node;
+    prevTarget?: Node;
+    nextTarget?: Node;
+    version: number;
+}
+declare class Effect {
+    fn?: EffectFn;
+    nextEffect?: Effect;
+    cleanup?: () => void;
+    source?: Node;
+    flags: number;
+    constructor(fn: EffectFn);
+    callback(): void;
+    dispose(): void;
+    notify(): void;
+    clean(): void;
+    start(): () => void;
+}
+declare class Signal<T = any> {
+    val?: T;
+    err?: unknown;
+    node?: Node;
+    target?: Node;
+    version: number;
+    get value(): T;
+    set value(val: T);
+    constructor(val?: T);
+    addNode(node: Node): void;
+    delNode(node: Node): void;
+    subscribe(fn: (value: T) => void): () => void;
+    dependency(): Node | undefined;
+    refresh(): boolean;
+    toString(): string;
+    valueOf(): T;
+    toJSON(): T;
+    peek(): T;
+}
+declare class Computed<T = any> extends Signal<T> {
+    globalVersion: number;
+    source?: Node;
+    flags: number;
+    fn: () => T;
+    get value(): T;
+    constructor(fn: () => T);
+    addNode(node: Node): void;
+    delNode(node: Node): void;
+    refresh(): boolean;
+    notify(): void;
+}
+declare const untracked: <T = void>(fn: () => T) => T;
+declare const computed: <T = void>(fn: () => T) => ReadonlySignal<T>;
+declare const effect: <T = void>(fn: EffectFn) => () => T;
+declare const signal: NewSignal;
+declare const batch: <T = void>(fn: () => T) => T;
+
 type UniquerOptions = {
     radix?: 2 | 8 | 10 | 16 | 26 | 36;
     format?: string | null;
@@ -220,6 +295,11 @@ declare const hyphenCase: <T = any>(string: T, first?: boolean) => T;
 
 declare const _default: {
     unique: Unique;
+    untracked: <T = void>(fn: () => T) => T;
+    computed: <T = void>(fn: () => T) => ReadonlySignal<T>;
+    effect: <T = void>(fn: EffectFn) => () => T;
+    signal: NewSignal<any>;
+    batch: <T = void>(fn: () => T) => T;
     lowerCase: <T = any>(string: T) => T;
     upperCase: <T = any>(string: T) => T;
     camelCase: <T = any>(string: T, first?: boolean) => T;
@@ -309,4 +389,4 @@ declare const _default: {
     isSet: (set: unknown) => set is Set<unknown>;
 };
 
-export { type CloneOptionsType, type Curry, type CurryFn1, type CurryFn2, type CurryFn3, type CurryFn4, type CurryFn5, type DeepType, type EqualOptionsType, type FilterTypes, type Randomize, type RandomizeOptions, type Unique, type UniquerOptions, camelCase, clone, curry, dateFormat, debounce, _default as default, equal, hyphenCase, isArray, isAsyncFunction, isBoolean, isDate, isDecimal, isEmptyArray, isEmptyMap, isEmptyObject, isEmptySet, isEmptyString, isError, isEvalError, isFalse, isFinite, isFunction, isGeneratorFunction, isInfinity, isInteger, isMap, isNaN, isNonEmptyArray, isNonEmptyMap, isNonEmptyObject, isNonEmptySet, isNonEmptyString, isNormalFunction, isNull, isNullable, isNumber, isObject, isPromise, isRangeError, isReferenceError, isRegExp, isSafeInteger, isSafeNumber, isSet, isString, isSymbol, isSyntaxError, isTrue, isTypeError, isURIError, isUndef, isValidDate, isWeakMap, isWeakSet, lowerCase, merge, throttle, toFinite, toFixed, toInteger, toNumber, toPromise, toRegExp, toSafeInteger, toSafeNumber, toSymbol, toSymbolFor, underCase, unique, upperCase };
+export { type CloneOptionsType, type Curry, type CurryFn1, type CurryFn2, type CurryFn3, type CurryFn4, type CurryFn5, type DeepType, type EffectFn, type EqualOptionsType, type FilterTypes, type NewSignal, type Randomize, type RandomizeOptions, type ReadonlySignal, type Unique, type UniquerOptions, batch, camelCase, clone, computed, curry, dateFormat, debounce, _default as default, effect, equal, hyphenCase, isArray, isAsyncFunction, isBoolean, isDate, isDecimal, isEmptyArray, isEmptyMap, isEmptyObject, isEmptySet, isEmptyString, isError, isEvalError, isFalse, isFinite, isFunction, isGeneratorFunction, isInfinity, isInteger, isMap, isNaN, isNonEmptyArray, isNonEmptyMap, isNonEmptyObject, isNonEmptySet, isNonEmptyString, isNormalFunction, isNull, isNullable, isNumber, isObject, isPromise, isRangeError, isReferenceError, isRegExp, isSafeInteger, isSafeNumber, isSet, isString, isSymbol, isSyntaxError, isTrue, isTypeError, isURIError, isUndef, isValidDate, isWeakMap, isWeakSet, lowerCase, merge, signal, throttle, toFinite, toFixed, toInteger, toNumber, toPromise, toRegExp, toSafeInteger, toSafeNumber, toSymbol, toSymbolFor, underCase, unique, untracked, upperCase };
