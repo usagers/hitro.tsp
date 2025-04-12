@@ -1,5 +1,6 @@
 # Hitro.tsp
-TypeScript Provider for Usager.io
+
+Tool Script Provider for Usager.io
 
 <br/>
 

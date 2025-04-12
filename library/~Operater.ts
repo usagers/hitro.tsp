@@ -26,11 +26,11 @@ export const equal = (one: unknown, two: unknown, opts: EqualOptionsType | DeepT
   }
 
   if (isSet(one) && isSet(two)) {
-    return one.size === two.size && equal([...one.values()], [...two.values()], opts)
+    return one.size === two.size && equal(Array.from(one), Array.from(two), opts)
   }
 
   if (isMap(one) && isMap(two)) {
-    return one.size === two.size && equal(Object.fromEntries(one.entries()), Object.fromEntries(two.entries()), opts)
+    return one.size === two.size && equal(Array.from(one), Array.from(two), opts)
   }
 
   if (isNumber(one) && isNumber(two)) {
@@ -92,14 +92,14 @@ export const equal = (one: unknown, two: unknown, opts: EqualOptionsType | DeepT
         return false
       }
 
-      const reuslt = equal(val1, val2, {
+      const result = equal(val1, val2, {
         strict,
         include,
         exclude,
         deep,
       })
 
-      if (!reuslt) {
+      if (!result) {
         return false
       }
     }
@@ -148,14 +148,14 @@ export const equal = (one: unknown, two: unknown, opts: EqualOptionsType | DeepT
         return false
       }
 
-      const reuslt = equal(val1, val2, {
+      const result = equal(val1, val2, {
         strict,
         include,
         exclude,
         deep,
       })
 
-      if (!reuslt) {
+      if (!result) {
         return false
       }
     }
@@ -164,7 +164,7 @@ export const equal = (one: unknown, two: unknown, opts: EqualOptionsType | DeepT
   }
 
   if (isDate(one) && isDate(two)) {
-    return +one === +two
+    return Object.is(one.getTime(), two.getTime())
   }
 
   return false
@@ -272,12 +272,12 @@ export const merge = <T = unknown>(val: T, ...rest: any[]) => {
   }
 
   const merging = (val: T, obj: T, level: number) => {
-    const refly: any = isMap(val) ? Object.fromEntries(val.entries()) : isSet(val) ? Array.from(val.values()) : val
-    const newly: any = isMap(obj) ? Object.fromEntries(obj.entries()) : isSet(obj) ? Array.from(obj.values()) : obj
+    const refer: any = isMap(val) || isSet(val) ? Array.from(val) : val
+    const newly: any = isMap(obj) || isSet(obj) ? Array.from(obj) : obj
 
     for (const [key, source] of taking(newly)) {
       if (level < 1) {
-        refly[key] = source
+        refer[key] = source
         continue
       }
 
@@ -287,10 +287,10 @@ export const merge = <T = unknown>(val: T, ...rest: any[]) => {
       const isCopyArray = isArray(source)
       const isCopyObject = isObject(source)
       const isCopyRegExp = isRegExp(source)
-      const isNotSameType = empty.toString.call(refly[key]) !== empty.toString.call(source)
+      const isNotSameType = empty.toString.call(refer[key]) !== empty.toString.call(source)
 
       if (!isCopySet && !isCopyMap && !isCopyDate && !isCopyArray && !isCopyObject && !isCopyRegExp) {
-        refly[key] = source
+        refer[key] = source
         continue
       }
 
@@ -299,11 +299,11 @@ export const merge = <T = unknown>(val: T, ...rest: any[]) => {
       }
 
       if (isNotSameType) {
-        refly[key] = cache.get(source)
+        refer[key] = cache.get(source)
         continue
       }
 
-      merging(refly[key], newly[key], level - 1)
+      merging(refer[key], newly[key], level - 1)
     }
 
     if (isMap(val) || isSet(val)) {
@@ -311,13 +311,13 @@ export const merge = <T = unknown>(val: T, ...rest: any[]) => {
     }
 
     if (isMap(val)) {
-      for (const [key, source] of Object.entries(refly)) {
+      for (const [key, source] of refer) {
         val.set(key, source)
       }
     }
 
     if (isSet(val)) {
-      for (const source of refly) {
+      for (const source of refer) {
         val.add(source)
       }
     }
@@ -335,8 +335,13 @@ export const merge = <T = unknown>(val: T, ...rest: any[]) => {
   return val
 }
 
+export const check = (one: unknown, two: unknown) => {
+  return Object.is(one, two)
+}
+
 export default {
   clone,
   equal,
   merge,
+  check,
 }

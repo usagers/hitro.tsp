@@ -97,6 +97,7 @@ type EqualOptionsType = {
 declare const equal: (one: unknown, two: unknown, opts?: EqualOptionsType | DeepType) => boolean;
 declare const clone: <T = unknown>(val: T, opts?: CloneOptionsType | DeepType) => T;
 declare const merge: <T = unknown>(val: T, ...rest: any[]) => T;
+declare const check: (one: unknown, two: unknown) => boolean;
 
 interface ReadonlySignal<T = any> {
     readonly value: T;
@@ -247,9 +248,10 @@ declare const isFalse: (bool: unknown) => bool is false;
 declare const isTrue: (bool: unknown) => bool is true;
 
 type PromiseReject = (reason?: any) => void;
-type PromiseResove<T = any> = (value: T | PromiseLike<T>) => void;
+type PromiseResolve<T = any> = (value: T | PromiseLike<T>) => void;
 type PromiseExtension<T = any> = {
-    resolve: PromiseResove<T>;
+    promise: Promise<T>;
+    resolve: PromiseResolve<T>;
     reject: PromiseReject;
 };
 declare const toPromise: <T = unknown>(...rest: Array<unknown>) => Promise<T> & PromiseExtension;
@@ -308,6 +310,7 @@ declare const _default: {
     clone: <T = unknown>(val: T, opts?: CloneOptionsType | DeepType) => T;
     equal: (one: unknown, two: unknown, opts?: EqualOptionsType | DeepType) => boolean;
     merge: <T = unknown>(val: T, ...rest: any[]) => T;
+    check: (one: unknown, two: unknown) => boolean;
     debounce: (func: Function, wait: number, options?: {
         leading?: boolean;
         trailing?: boolean;
@@ -337,6 +340,7 @@ declare const _default: {
     isWeakSet: (set?: unknown) => set is WeakSet<object>;
     isPromise: (val: unknown) => val is Promise<any>;
     toPromise: <T = unknown>(...rest: Array<unknown>) => Promise<T> & {
+        promise: Promise<any>;
         resolve: (value: any) => void;
         reject: (reason?: any) => void;
     };
@@ -378,9 +382,9 @@ declare const _default: {
     isTypeError: (err: unknown) => err is TypeError;
     isURIError: (err: unknown) => err is URIError;
     isError: (err: unknown) => err is Error;
-    isDate: (date: unknown) => date is Date;
     isValidDate: (date: unknown) => date is Date;
     dateFormat: (date: unknown, format?: string) => string;
+    isDate: (date: unknown) => date is Date;
     isNonEmptyMap: (map: unknown) => map is Map<unknown, unknown>;
     isEmptyMap: (map: unknown) => map is Map<unknown, unknown>;
     isMap: (map: unknown) => map is Map<unknown, unknown>;
@@ -389,4 +393,4 @@ declare const _default: {
     isSet: (set: unknown) => set is Set<unknown>;
 };
 
-export { type CloneOptionsType, type Curry, type CurryFn1, type CurryFn2, type CurryFn3, type CurryFn4, type CurryFn5, type DeepType, type EffectFn, type EqualOptionsType, type FilterTypes, type NewSignal, type Randomize, type RandomizeOptions, type ReadonlySignal, type Unique, type UniquerOptions, batch, camelCase, clone, computed, curry, dateFormat, debounce, _default as default, effect, equal, hyphenCase, isArray, isAsyncFunction, isBoolean, isDate, isDecimal, isEmptyArray, isEmptyMap, isEmptyObject, isEmptySet, isEmptyString, isError, isEvalError, isFalse, isFinite, isFunction, isGeneratorFunction, isInfinity, isInteger, isMap, isNaN, isNonEmptyArray, isNonEmptyMap, isNonEmptyObject, isNonEmptySet, isNonEmptyString, isNormalFunction, isNull, isNullable, isNumber, isObject, isPromise, isRangeError, isReferenceError, isRegExp, isSafeInteger, isSafeNumber, isSet, isString, isSymbol, isSyntaxError, isTrue, isTypeError, isURIError, isUndef, isValidDate, isWeakMap, isWeakSet, lowerCase, merge, signal, throttle, toFinite, toFixed, toInteger, toNumber, toPromise, toRegExp, toSafeInteger, toSafeNumber, toSymbol, toSymbolFor, underCase, unique, untracked, upperCase };
+export { type CloneOptionsType, type Curry, type CurryFn1, type CurryFn2, type CurryFn3, type CurryFn4, type CurryFn5, type DeepType, type EffectFn, type EqualOptionsType, type FilterTypes, type NewSignal, type Randomize, type RandomizeOptions, type ReadonlySignal, type Unique, type UniquerOptions, batch, camelCase, check, clone, computed, curry, dateFormat, debounce, _default as default, effect, equal, hyphenCase, isArray, isAsyncFunction, isBoolean, isDate, isDecimal, isEmptyArray, isEmptyMap, isEmptyObject, isEmptySet, isEmptyString, isError, isEvalError, isFalse, isFinite, isFunction, isGeneratorFunction, isInfinity, isInteger, isMap, isNaN, isNonEmptyArray, isNonEmptyMap, isNonEmptyObject, isNonEmptySet, isNonEmptyString, isNormalFunction, isNull, isNullable, isNumber, isObject, isPromise, isRangeError, isReferenceError, isRegExp, isSafeInteger, isSafeNumber, isSet, isString, isSymbol, isSyntaxError, isTrue, isTypeError, isURIError, isUndef, isValidDate, isWeakMap, isWeakSet, lowerCase, merge, signal, throttle, toFinite, toFixed, toInteger, toNumber, toPromise, toRegExp, toSafeInteger, toSafeNumber, toSymbol, toSymbolFor, underCase, unique, untracked, upperCase };

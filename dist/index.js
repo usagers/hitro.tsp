@@ -204,48 +204,59 @@ var dateFormat = (date, format) => {
   date = isNullable(date) ? /* @__PURE__ */ new Date() : date;
   format = isNullable(format) ? "YYYY-MM-DD" : format;
   if (isNonEmptyString(format) && isValidDate(date)) {
-    return format.replace(/YYYY|MM?|DD?|HH?|mm?|ss?s?|ii?i?/gi, (type) => {
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const seconds = date.getSeconds();
+    const milliseconds = date.getMilliseconds();
+    return format.replace(/YYYY|YY|MM?|DD?|HH?|mm?|ss?s?|ii?i?/gi, (type) => {
       switch (type) {
         case "YYYY":
-          return String(date.getFullYear());
+          return String(year);
         case "yyyy":
-          return String(date.getFullYear());
+          return String(year);
+        case "YY":
+          return String(year).slice(-2);
+        case "yy":
+          return String(year).slice(-2);
         case "MM":
-          return String(date.getMonth() >= 9 ? date.getMonth() + 1 : "0" + (date.getMonth() + 1));
+          return String(month).padStart(2, "0");
         case "M":
-          return String(date.getMonth() + 1);
+          return String(month);
         case "DD":
-          return String(date.getDate() > 9 ? date.getDate() : "0" + date.getMonth());
+          return String(day).padStart(2, "0");
         case "dd":
-          return String(date.getDate() > 9 ? date.getDate() : "0" + date.getMonth());
+          return String(day).padStart(2, "0");
         case "D":
-          return String(date.getDate());
+          return String(day);
         case "d":
-          return String(date.getDate());
+          return String(day);
         case "HH":
-          return String(date.getHours() > 9 ? date.getHours() : "0" + date.getHours());
+          return String(hours).padStart(2, "0");
         case "hh":
-          return String(date.getHours() > 9 ? date.getHours() : "0" + date.getHours());
+          return String(hours % 12 || 12).padStart(2, "0");
         case "H":
-          return String(date.getHours());
+          return String(hours);
         case "h":
-          return String(date.getHours());
+          return String(hours % 12 || 12);
         case "mm":
-          return String(date.getMinutes() > 9 ? date.getMinutes() : "0" + date.getMinutes());
+          return String(minutes).padStart(2, "0");
         case "m":
-          return String(date.getMinutes());
+          return String(minutes);
         case "ss":
-          return String(date.getSeconds() > 9 ? date.getSeconds() : "0" + date.getSeconds());
+          return String(seconds).padStart(2, "0");
         case "s":
-          return String(date.getSeconds());
+          return String(seconds);
         case "sss":
-          return String(date.getMilliseconds() > 99 ? date.getMilliseconds() : date.getMilliseconds() > 9 ? "0" + date.getMilliseconds() : "00" + date.getMilliseconds());
+          return String(milliseconds).padStart(3, "0");
         case "iii":
-          return String(date.getMilliseconds() > 99 ? date.getMilliseconds() : date.getMilliseconds() > 9 ? "0" + date.getMilliseconds() : "00" + date.getMilliseconds());
+          return String(milliseconds).padStart(3, "0");
         case "ii":
-          return String(date.getMilliseconds() > 9 ? date.getMilliseconds() : "0" + date.getMilliseconds());
+          return String(Math.floor(milliseconds / 10)).padStart(2, "0");
         case "i":
-          return String(date.getMilliseconds());
+          return String(Math.floor(milliseconds / 100));
       }
       return type;
     });
@@ -253,9 +264,9 @@ var dateFormat = (date, format) => {
   return "";
 };
 var Date_default = {
-  isDate,
   isValidDate,
-  dateFormat
+  dateFormat,
+  isDate
 };
 
 // library/-Error.ts
@@ -634,10 +645,10 @@ var equal = (one, two, opts = true) => {
     return true;
   }
   if (isSet(one) && isSet(two)) {
-    return one.size === two.size && equal([...one.values()], [...two.values()], opts);
+    return one.size === two.size && equal(Array.from(one), Array.from(two), opts);
   }
   if (isMap(one) && isMap(two)) {
-    return one.size === two.size && equal(Object.fromEntries(one.entries()), Object.fromEntries(two.entries()), opts);
+    return one.size === two.size && equal(Array.from(one), Array.from(two), opts);
   }
   if (isNumber(one) && isNumber(two)) {
     return Math.abs(one - two) < Number.EPSILON;
@@ -686,13 +697,13 @@ var equal = (one, two, opts = true) => {
       if (deep2 < 1) {
         return false;
       }
-      const reuslt = equal(val1, val2, {
+      const result = equal(val1, val2, {
         strict,
         include,
         exclude,
         deep: deep2
       });
-      if (!reuslt) {
+      if (!result) {
         return false;
       }
     }
@@ -731,20 +742,20 @@ var equal = (one, two, opts = true) => {
       if (deep2 < 1) {
         return false;
       }
-      const reuslt = equal(val1, val2, {
+      const result = equal(val1, val2, {
         strict,
         include,
         exclude,
         deep: deep2
       });
-      if (!reuslt) {
+      if (!result) {
         return false;
       }
     }
     return true;
   }
   if (isDate(one) && isDate(two)) {
-    return +one === +two;
+    return Object.is(one.getTime(), two.getTime());
   }
   return false;
 };
@@ -827,11 +838,11 @@ var merge = (val, ...rest) => {
     return isObject(val2) ? Object.entries(val2) : val2.entries();
   };
   const merging = (val2, obj, level2) => {
-    const refly = isMap(val2) ? Object.fromEntries(val2.entries()) : isSet(val2) ? Array.from(val2.values()) : val2;
-    const newly = isMap(obj) ? Object.fromEntries(obj.entries()) : isSet(obj) ? Array.from(obj.values()) : obj;
+    const refer = isMap(val2) || isSet(val2) ? Array.from(val2) : val2;
+    const newly = isMap(obj) || isSet(obj) ? Array.from(obj) : obj;
     for (const [key, source] of taking(newly)) {
       if (level2 < 1) {
-        refly[key] = source;
+        refer[key] = source;
         continue;
       }
       const isCopySet = isSet(source);
@@ -840,30 +851,30 @@ var merge = (val, ...rest) => {
       const isCopyArray = isArray(source);
       const isCopyObject = isObject(source);
       const isCopyRegExp = isRegExp(source);
-      const isNotSameType = empty.toString.call(refly[key]) !== empty.toString.call(source);
+      const isNotSameType = empty.toString.call(refer[key]) !== empty.toString.call(source);
       if (!isCopySet && !isCopyMap && !isCopyDate && !isCopyArray && !isCopyObject && !isCopyRegExp) {
-        refly[key] = source;
+        refer[key] = source;
         continue;
       }
       if (!cache.has(source)) {
         cache.set(source, clone(source, { deep: level2, cache }));
       }
       if (isNotSameType) {
-        refly[key] = cache.get(source);
+        refer[key] = cache.get(source);
         continue;
       }
-      merging(refly[key], newly[key], level2 - 1);
+      merging(refer[key], newly[key], level2 - 1);
     }
     if (isMap(val2) || isSet(val2)) {
       val2.clear();
     }
     if (isMap(val2)) {
-      for (const [key, source] of Object.entries(refly)) {
+      for (const [key, source] of refer) {
         val2.set(key, source);
       }
     }
     if (isSet(val2)) {
-      for (const source of refly) {
+      for (const source of refer) {
         val2.add(source);
       }
     }
@@ -878,10 +889,14 @@ var merge = (val, ...rest) => {
   }
   return val;
 };
+var check = (one, two) => {
+  return Object.is(one, two);
+};
 var Operater_default = {
   clone,
   equal,
-  merge
+  merge,
+  check
 };
 
 // library/~Formater.ts
@@ -1475,6 +1490,7 @@ var library_default = {
 export {
   batch,
   camelCase,
+  check,
   clone,
   computed,
   curry,

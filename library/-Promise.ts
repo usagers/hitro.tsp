@@ -1,6 +1,6 @@
 type PromiseReject = (reason?: any) => void
-type PromiseResove<T = any> = (value: T | PromiseLike<T>) => void
-type PromiseExtension<T = any> = { resolve: PromiseResove<T>; reject: PromiseReject; }
+type PromiseResolve<T = any> = (value: T | PromiseLike<T>) => void
+type PromiseExtension<T = any> = { promise: Promise<T>; resolve: PromiseResolve<T>; reject: PromiseReject; }
 
 export const toPromise = <T = unknown>(...rest: Array<unknown>): Promise<T> & PromiseExtension => {
   const { promise, resolve, reject } = Promise.withResolvers<T>()

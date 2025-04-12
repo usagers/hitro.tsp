@@ -1,7 +1,7 @@
 {
   "name": "@hitro/tsp",
-  "version": "1.1.0",
-  "description": "TypeScript Provider for Usager.io",
+  "version": "1.2.0",
+  "description": "Tool Script Provider for Usager.io",
   "author": "lin pengteng <china.linpengteng@gmail.com>",
   "license": "Apache License 2.0",
   "types": "dist/index.d.ts",
@@ -29,14 +29,14 @@
     "build": "tsup"
   },
   "devDependencies": {
-    "@eslint/js": "^9.23.0",
+    "@eslint/js": "^9.24.0",
     "@stylistic/eslint-plugin": "^4.2.0",
     "@types/eslint": "^9.6.1",
-    "@types/node": "^22.13.14",
-    "eslint": "^9.23.0",
+    "@types/node": "^22.14.1",
+    "eslint": "^9.24.0",
     "tsup": "^8.4.0",
-    "typescript": "^5.8.2",
-    "typescript-eslint": "^8.28.0"
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.29.1"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
