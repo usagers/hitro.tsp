@@ -1,9 +1,9 @@
-type PromiseReject = (reason?: any) => void
-type PromiseResolve<T = any> = (value: T | PromiseLike<T>) => void
+type IPromiseReject = (reason?: any) => void
+type IPromiseResolve<T = any> = (value: T | PromiseLike<T>) => void
 
-export interface PromiseExtension<T = any> extends Promise<T> {
-  resolve: PromiseResolve<T>;
-  reject: PromiseReject;
+export interface IPromiser<T = any> extends Promise<T> {
+  resolve: IPromiseResolve<T>;
+  reject: IPromiseReject;
   promise: Promise<T>;
   completed: boolean;
   fulfilled: boolean;
@@ -11,7 +11,7 @@ export interface PromiseExtension<T = any> extends Promise<T> {
   pending: boolean;
 }
 
-export const toPromise = <T = unknown>(...rest: Array<unknown>): Promise<T> & PromiseExtension => {
+export const toPromise = <T = unknown>(...rest: Array<unknown>): Promise<T> & IPromiser => {
   const { promise, resolve, reject } = Promise.withResolvers<T>()
 
   let promiser = Promise.race([...rest, promise]) as any
@@ -42,7 +42,7 @@ export const toPromise = <T = unknown>(...rest: Array<unknown>): Promise<T> & Pr
     pending: true,
   })
 
-  return promiser as PromiseExtension<T>
+  return promiser as IPromiser<T>
 }
 
 export const isPromise = (val: unknown): val is Promise<any> => {

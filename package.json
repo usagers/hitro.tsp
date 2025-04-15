@@ -1,6 +1,6 @@
 {
   "name": "@hitro/tsp",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Tool Script Provider for Usager.io",
   "author": "lin pengteng <china.linpengteng@gmail.com>",
   "license": "Apache License 2.0",

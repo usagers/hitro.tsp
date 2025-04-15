@@ -1,15 +1,15 @@
-type PromiseReject = (reason?: any) => void;
-type PromiseResolve<T = any> = (value: T | PromiseLike<T>) => void;
-interface PromiseExtension<T = any> extends Promise<T> {
-    resolve: PromiseResolve<T>;
-    reject: PromiseReject;
+type IPromiseReject = (reason?: any) => void;
+type IPromiseResolve<T = any> = (value: T | PromiseLike<T>) => void;
+interface IPromiser<T = any> extends Promise<T> {
+    resolve: IPromiseResolve<T>;
+    reject: IPromiseReject;
     promise: Promise<T>;
     completed: boolean;
     fulfilled: boolean;
     rejected: boolean;
     pending: boolean;
 }
-declare const toPromise: <T = unknown>(...rest: Array<unknown>) => Promise<T> & PromiseExtension;
+declare const toPromise: <T = unknown>(...rest: Array<unknown>) => Promise<T> & IPromiser;
 declare const isPromise: (val: unknown) => val is Promise<any>;
 
 interface Curry {
@@ -94,26 +94,26 @@ interface CurryFn5<T1, T2, T3, T4, T5, R> {
 }
 declare const curry: Curry;
 
-type DeepType = boolean | number;
-type FilterTypes = Array<string | number | RegExp>;
-type CloneOptionsType = {
-    omit?: FilterTypes;
-    pick?: FilterTypes;
+type IDeep = boolean | number;
+type IFilter = Array<string | number | RegExp>;
+type ICloneOptions = {
+    omit?: IFilter;
+    pick?: IFilter;
     cache?: WeakMap<object, unknown>;
-    deep?: DeepType;
+    deep?: IDeep;
 };
-type EqualOptionsType = {
-    strict?: FilterTypes;
-    include?: FilterTypes;
-    exclude?: FilterTypes;
-    deep?: DeepType;
+type IEqualOptions = {
+    strict?: IFilter;
+    include?: IFilter;
+    exclude?: IFilter;
+    deep?: IDeep;
 };
-declare const equal: (one: unknown, two: unknown, opts?: EqualOptionsType | DeepType) => boolean;
-declare const clone: <T = unknown>(val: T, opts?: CloneOptionsType | DeepType) => T;
+declare const equal: (one: unknown, two: unknown, opts?: IEqualOptions | IDeep) => boolean;
+declare const clone: <T = unknown>(val: T, opts?: ICloneOptions | IDeep) => T;
 declare const merge: <T = unknown>(val: T, ...rest: any[]) => T;
 declare const check: (one: unknown, two: unknown) => boolean;
 
-interface ReadonlySignal<T = any> {
+interface IReadonlySignal<T = any> {
     readonly value: T;
     subscribe(fn: (value: T) => void): () => void;
     toString(): string;
@@ -121,30 +121,30 @@ interface ReadonlySignal<T = any> {
     toJSON(): T;
     peek(): T;
 }
-interface NewSignal<T = any> {
+interface INewSignal<T = any> {
     <P = T>(value: P): Signal<P>;
     <P = undefined>(): Signal<P | undefined>;
 }
-interface EffectFn {
+interface IEffectFn {
     (): void | (() => void);
 }
-interface Node {
+interface INode {
     signal: Signal;
     target: Computed | Effect;
-    rollbackNode?: Node;
-    prevSource?: Node;
-    nextSource?: Node;
-    prevTarget?: Node;
-    nextTarget?: Node;
+    rollbackNode?: INode;
+    prevSource?: INode;
+    nextSource?: INode;
+    prevTarget?: INode;
+    nextTarget?: INode;
     version: number;
 }
 declare class Effect {
-    fn?: EffectFn;
+    fn?: IEffectFn;
     nextEffect?: Effect;
     cleanup?: () => void;
-    source?: Node;
+    source?: INode;
     flags: number;
-    constructor(fn: EffectFn);
+    constructor(fn: IEffectFn);
     callback(): void;
     dispose(): void;
     notify(): void;
@@ -154,16 +154,16 @@ declare class Effect {
 declare class Signal<T = any> {
     val?: T;
     err?: unknown;
-    node?: Node;
-    target?: Node;
+    node?: INode;
+    target?: INode;
     version: number;
     get value(): T;
     set value(val: T);
     constructor(val?: T);
-    addNode(node: Node): void;
-    delNode(node: Node): void;
+    addNode(node: INode): void;
+    delNode(node: INode): void;
     subscribe(fn: (value: T) => void): () => void;
-    dependency(): Node | undefined;
+    dependency(): INode | undefined;
     refresh(): boolean;
     toString(): string;
     valueOf(): T;
@@ -172,36 +172,36 @@ declare class Signal<T = any> {
 }
 declare class Computed<T = any> extends Signal<T> {
     globalVersion: number;
-    source?: Node;
+    source?: INode;
     flags: number;
     fn: () => T;
     get value(): T;
     constructor(fn: () => T);
-    addNode(node: Node): void;
-    delNode(node: Node): void;
+    addNode(node: INode): void;
+    delNode(node: INode): void;
     refresh(): boolean;
     notify(): void;
 }
 declare const untracked: <T = void>(fn: () => T) => T;
-declare const computed: <T = void>(fn: () => T) => ReadonlySignal<T>;
-declare const effect: <T = void>(fn: EffectFn) => () => T;
-declare const signal: NewSignal;
+declare const computed: <T = void>(fn: () => T) => IReadonlySignal<T>;
+declare const effect: <T = void>(fn: IEffectFn) => () => T;
+declare const signal: INewSignal;
 declare const batch: <T = void>(fn: () => T) => T;
 
-type UniquerOptions = {
+type IUniquerOptions = {
     radix?: 2 | 8 | 10 | 16 | 26 | 36;
     format?: string | null;
     random?: '?' | '*' | '#';
     uniques?: Array<string> | Set<string> | null;
 };
-type RandomizeOptions = {
+type IRandomizeOptions = {
     bytes: string[];
     max: number;
     min: number;
 };
-type Randomize = (options: RandomizeOptions) => string;
-type Unique = (options?: UniquerOptions) => string;
-declare const unique: Unique;
+type IRandomize = (options: IRandomizeOptions) => string;
+type IUnique = (options?: IUniquerOptions) => string;
+declare const unique: IUnique;
 
 declare const isNonEmptySet: (set: unknown) => set is Set<unknown>;
 declare const isEmptySet: (set: unknown) => set is Set<unknown>;
@@ -300,19 +300,19 @@ declare const underCase: <T = any>(string: T, first?: boolean) => T;
 declare const hyphenCase: <T = any>(string: T, first?: boolean) => T;
 
 declare const _default: {
-    unique: Unique;
+    unique: IUnique;
     untracked: <T = void>(fn: () => T) => T;
-    computed: <T = void>(fn: () => T) => ReadonlySignal<T>;
-    effect: <T = void>(fn: EffectFn) => () => T;
-    signal: NewSignal<any>;
+    computed: <T = void>(fn: () => T) => IReadonlySignal<T>;
+    effect: <T = void>(fn: IEffectFn) => () => T;
+    signal: INewSignal<any>;
     batch: <T = void>(fn: () => T) => T;
     lowerCase: <T = any>(string: T) => T;
     upperCase: <T = any>(string: T) => T;
     camelCase: <T = any>(string: T, first?: boolean) => T;
     underCase: <T = any>(string: T, first?: boolean) => T;
     hyphenCase: <T = any>(string: T, first?: boolean) => T;
-    clone: <T = unknown>(val: T, opts?: CloneOptionsType | DeepType) => T;
-    equal: (one: unknown, two: unknown, opts?: EqualOptionsType | DeepType) => boolean;
+    clone: <T = unknown>(val: T, opts?: ICloneOptions | IDeep) => T;
+    equal: (one: unknown, two: unknown, opts?: IEqualOptions | IDeep) => boolean;
     merge: <T = unknown>(val: T, ...rest: any[]) => T;
     check: (one: unknown, two: unknown) => boolean;
     debounce: (func: Function, wait: number, options?: {
@@ -343,7 +343,7 @@ declare const _default: {
     isWeakMap: (map: unknown) => map is WeakMap<object, unknown>;
     isWeakSet: (set?: unknown) => set is WeakSet<object>;
     isPromise: (val: unknown) => val is Promise<any>;
-    toPromise: <T = unknown>(...rest: Array<unknown>) => Promise<T> & PromiseExtension;
+    toPromise: <T = unknown>(...rest: Array<unknown>) => Promise<T> & IPromiser;
     isBoolean: (bool: unknown) => bool is boolean;
     isFalse: (bool: unknown) => bool is false;
     isTrue: (bool: unknown) => bool is true;
@@ -393,4 +393,4 @@ declare const _default: {
     isSet: (set: unknown) => set is Set<unknown>;
 };
 
-export { type CloneOptionsType, type Curry, type CurryFn1, type CurryFn2, type CurryFn3, type CurryFn4, type CurryFn5, type DeepType, type EffectFn, type EqualOptionsType, type FilterTypes, type NewSignal, type PromiseExtension, type Randomize, type RandomizeOptions, type ReadonlySignal, type Unique, type UniquerOptions, batch, camelCase, check, clone, computed, curry, dateFormat, debounce, _default as default, effect, equal, hyphenCase, isArray, isAsyncFunction, isBoolean, isDate, isDecimal, isEmptyArray, isEmptyMap, isEmptyObject, isEmptySet, isEmptyString, isError, isEvalError, isFalse, isFinite, isFunction, isGeneratorFunction, isInfinity, isInteger, isMap, isNaN, isNonEmptyArray, isNonEmptyMap, isNonEmptyObject, isNonEmptySet, isNonEmptyString, isNormalFunction, isNull, isNullable, isNumber, isObject, isPromise, isRangeError, isReferenceError, isRegExp, isSafeInteger, isSafeNumber, isSet, isString, isSymbol, isSyntaxError, isTrue, isTypeError, isURIError, isUndef, isValidDate, isWeakMap, isWeakSet, lowerCase, merge, signal, throttle, toFinite, toFixed, toInteger, toNumber, toPromise, toRegExp, toSafeInteger, toSafeNumber, toSymbol, toSymbolFor, underCase, unique, untracked, upperCase };
+export { type Curry, type CurryFn1, type CurryFn2, type CurryFn3, type CurryFn4, type CurryFn5, type ICloneOptions, type IDeep, type IEffectFn, type IEqualOptions, type IFilter, type INewSignal, type IPromiser, type IRandomize, type IRandomizeOptions, type IReadonlySignal, type IUnique, type IUniquerOptions, batch, camelCase, check, clone, computed, curry, dateFormat, debounce, _default as default, effect, equal, hyphenCase, isArray, isAsyncFunction, isBoolean, isDate, isDecimal, isEmptyArray, isEmptyMap, isEmptyObject, isEmptySet, isEmptyString, isError, isEvalError, isFalse, isFinite, isFunction, isGeneratorFunction, isInfinity, isInteger, isMap, isNaN, isNonEmptyArray, isNonEmptyMap, isNonEmptyObject, isNonEmptySet, isNonEmptyString, isNormalFunction, isNull, isNullable, isNumber, isObject, isPromise, isRangeError, isReferenceError, isRegExp, isSafeInteger, isSafeNumber, isSet, isString, isSymbol, isSyntaxError, isTrue, isTypeError, isURIError, isUndef, isValidDate, isWeakMap, isWeakSet, lowerCase, merge, signal, throttle, toFinite, toFixed, toInteger, toNumber, toPromise, toRegExp, toSafeInteger, toSafeNumber, toSymbol, toSymbolFor, underCase, unique, untracked, upperCase };

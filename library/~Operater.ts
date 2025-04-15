@@ -11,12 +11,12 @@ import { toInteger } from './-Number'
 import { isWeakMap } from './-WeakMap'
 import { isNullable } from './~Nullable'
 
-export type DeepType = boolean | number
-export type FilterTypes = Array<string | number | RegExp>
-export type CloneOptionsType = { omit?: FilterTypes; pick?: FilterTypes; cache?: WeakMap<object, unknown>; deep?: DeepType; }
-export type EqualOptionsType = { strict?: FilterTypes; include?: FilterTypes; exclude?: FilterTypes; deep?: DeepType; }
+export type IDeep = boolean | number
+export type IFilter = Array<string | number | RegExp>
+export type ICloneOptions = { omit?: IFilter; pick?: IFilter; cache?: WeakMap<object, unknown>; deep?: IDeep; }
+export type IEqualOptions = { strict?: IFilter; include?: IFilter; exclude?: IFilter; deep?: IDeep; }
 
-export const equal = (one: unknown, two: unknown, opts: EqualOptionsType | DeepType = true): boolean => {
+export const equal = (one: unknown, two: unknown, opts: IEqualOptions | IDeep = true): boolean => {
   if (one === two) {
     return true
   }
@@ -170,7 +170,7 @@ export const equal = (one: unknown, two: unknown, opts: EqualOptionsType | DeepT
   return false
 }
 
-export const clone = <T = unknown>(val: T, opts: CloneOptionsType | DeepType = true): T => {
+export const clone = <T = unknown>(val: T, opts: ICloneOptions | IDeep = true): T => {
   const deep = isObject(opts) ? opts.deep : opts
   const cache = isObject(opts) && isWeakMap(opts.cache) ? opts.cache : new WeakMap()
   const level = isNullable(deep) || deep === true || deep === Infinity ? Infinity : Math.max(toInteger(deep), 1)

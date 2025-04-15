@@ -12,7 +12,7 @@ let globalVersion: number = 0
 let globalEffect: Effect | undefined = undefined
 let evalContext: Computed | Effect | undefined = undefined
 
-interface ReadonlySignal<T = any> {
+interface IReadonlySignal<T = any> {
   readonly value: T;
   subscribe(fn: (value: T) => void): () => void;
   toString(): string;
@@ -21,23 +21,23 @@ interface ReadonlySignal<T = any> {
   peek(): T;
 }
 
-interface NewSignal<T = any> {
+interface INewSignal<T = any> {
   <P = T>(value: P): Signal<P>;
   <P = undefined>(): Signal<P | undefined>;
 }
 
-interface EffectFn {
+interface IEffectFn {
   (): void | (() => void);
 }
 
-interface Node {
+interface INode {
   signal: Signal;
   target: Computed | Effect;
-  rollbackNode?: Node;
-  prevSource?: Node;
-  nextSource?: Node;
-  prevTarget?: Node;
-  nextTarget?: Node;
+  rollbackNode?: INode;
+  prevSource?: INode;
+  nextSource?: INode;
+  prevTarget?: INode;
+  nextTarget?: INode;
   version: number;
 }
 
@@ -149,13 +149,13 @@ class Util {
 }
 
 class Effect {
-  fn?: EffectFn
+  fn?: IEffectFn
   nextEffect?: Effect
   cleanup?: () => void = undefined
-  source?: Node = undefined
+  source?: INode = undefined
   flags: number = TRACKING
 
-  constructor(fn: EffectFn) {
+  constructor(fn: IEffectFn) {
     this.fn = fn
   }
 
@@ -269,8 +269,8 @@ class Effect {
 class Signal<T = any> {
   val?: T
   err?: unknown
-  node?: Node = undefined
-  target?: Node = undefined
+  node?: INode = undefined
+  target?: INode = undefined
   version: number = 0
 
   get value(): T {
@@ -313,7 +313,7 @@ class Signal<T = any> {
     this.val = val
   }
 
-  addNode(node: Node) {
+  addNode(node: INode) {
     if (this.target !== node && node.prevTarget === undefined) {
       node.nextTarget = this.target
 
@@ -325,7 +325,7 @@ class Signal<T = any> {
     }
   }
 
-  delNode(node: Node) {
+  delNode(node: INode) {
     if (this.target !== undefined) {
       const prev = node.prevTarget
       const next = node.nextTarget
@@ -364,7 +364,7 @@ class Signal<T = any> {
       return undefined
     }
 
-    let node: Node | undefined = this.node
+    let node: INode | undefined = this.node
 
     if (node === undefined || node.target !== evalContext) {
       node = {
@@ -445,7 +445,7 @@ class Signal<T = any> {
 
 class Computed<T = any> extends Signal<T> {
   globalVersion: number = globalVersion - 1
-  source?: Node = undefined
+  source?: INode = undefined
   flags: number = OUTDATED
   fn: () => T
 
@@ -474,7 +474,7 @@ class Computed<T = any> extends Signal<T> {
     this.fn = fn
   }
 
-  addNode(node: Node) {
+  addNode(node: INode) {
     if (this.target === undefined) {
       this.flags |= OUTDATED | TRACKING
 
@@ -486,7 +486,7 @@ class Computed<T = any> extends Signal<T> {
     super.addNode(node)
   }
 
-  delNode(node: Node) {
+  delNode(node: INode) {
     if (this.target !== undefined) {
       super.delNode(node)
 
@@ -579,10 +579,10 @@ const untracked = <T = void>(fn: () => T) => {
 }
 
 const computed = <T = void>(fn: () => T) => {
-  return new Computed(fn) as ReadonlySignal<T>
+  return new Computed(fn) as IReadonlySignal<T>
 }
 
-const effect = <T = void>(fn: EffectFn) => {
+const effect = <T = void>(fn: IEffectFn) => {
   const effect = new Effect(fn)
 
   try {
@@ -595,7 +595,7 @@ const effect = <T = void>(fn: EffectFn) => {
   return effect.dispose.bind(effect) as () => T
 }
 
-const signal: NewSignal = <T>(val?: T) => {
+const signal: INewSignal = <T>(val?: T) => {
   return new Signal(val)
 }
 
@@ -622,9 +622,9 @@ export default {
 }
 
 export type {
-  ReadonlySignal,
-  NewSignal,
-  EffectFn,
+  IReadonlySignal,
+  INewSignal,
+  IEffectFn,
 }
 
 export {

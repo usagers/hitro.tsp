@@ -1,22 +1,22 @@
-export type UniquerOptions = {
+export type IUniquerOptions = {
   radix?: 2 | 8 | 10 | 16 | 26 | 36;
   format?: string | null;
   random?: '?' | '*' | '#';
   uniques?: Array<string> | Set<string> | null;
 }
 
-export type RandomizeOptions = {
+export type IRandomizeOptions = {
   bytes: string[];
   max: number;
   min: number;
 }
 
-export type Randomize = (options: RandomizeOptions) => string
-export type Unique = (options?: UniquerOptions) => string
+export type IRandomize = (options: IRandomizeOptions) => string
+export type IUnique = (options?: IUniquerOptions) => string
 
 const Cacher: Set<string> = new Set([''])
 
-export const unique: Unique = (options = {}) => {
+export const unique: IUnique = (options = {}) => {
   const radix = options.radix !== undefined ? options.radix : 16
   const random = options.random !== undefined ? options.random : '?'
   const format = options.format !== undefined ? options.format : ('????????-????-[1-5]???-[8-b]???-????????????').replace(/\?/g, random)
@@ -49,7 +49,7 @@ export const unique: Unique = (options = {}) => {
   const characters = Array.from({ length: 36 }, (_, key) => key.toString(36))
   const appendCacher = Cacher.add.bind(Cacher)
 
-  const randomizer: Randomize = opt => {
+  const randomizer: IRandomize = opt => {
     const min = opt.min
     const max = opt.max
     const bytes = opt.bytes
