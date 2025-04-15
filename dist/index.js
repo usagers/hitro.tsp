@@ -429,12 +429,31 @@ var Boolean_default = {
 // library/-Promise.ts
 var toPromise = (...rest) => {
   const { promise, resolve, reject } = Promise.withResolvers();
-  const promiser = Promise.race([...rest, promise]);
-  return Object.assign(promiser, {
-    promise: promiser,
-    resolve,
-    reject
+  let promiser = Promise.race([...rest, promise]);
+  promiser = promiser.then((value) => {
+    promiser.pending = false;
+    promiser.rejected = false;
+    promiser.fulfilled = true;
+    promiser.completed = true;
+    return value;
   });
+  promiser = promiser.catch((reason) => {
+    promiser.pending = false;
+    promiser.rejected = true;
+    promiser.fulfilled = false;
+    promiser.completed = true;
+    return Promise.reject(reason);
+  });
+  promiser = Object.assign(promiser, {
+    reject,
+    resolve,
+    promise: promiser,
+    completed: false,
+    fulfilled: false,
+    rejected: false,
+    pending: true
+  });
+  return promiser;
 };
 var isPromise = (val) => {
   return Object.prototype.toString.call(val) === "[object Promise]";
